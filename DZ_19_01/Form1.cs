@@ -43,19 +43,28 @@ namespace DZ_19_01
             {
                 connection.Open();
 
-                string updateQuery = "UPDATE Accounts SET Balance = Balance - @amount WHERE AccountNumber = @sourceAccount;" +
-                                     "UPDATE Accounts SET Balance = Balance + @amount WHERE AccountNumber = @destinationAccount;";
+                decimal sourceBalance = GetAccountBalance(connection, sourceAccount);
 
-                using (SqlCommand command = new SqlCommand(updateQuery, connection))
+                if (sourceBalance >= amount)
                 {
-                    command.Parameters.AddWithValue("@amount", amount);
-                    command.Parameters.AddWithValue("@sourceAccount", sourceAccount);
-                    command.Parameters.AddWithValue("@destinationAccount", destinationAccount);
+                    string updateQuery = "UPDATE Accounts SET Balance = Balance - @amount WHERE AccountNumber = @sourceAccount;" +
+                                         "UPDATE Accounts SET Balance = Balance + @amount WHERE AccountNumber = @destinationAccount;";
 
-                    command.ExecuteNonQuery();
+                    using (SqlCommand command = new SqlCommand(updateQuery, connection))
+                    {
+                        command.Parameters.AddWithValue("@amount", amount);
+                        command.Parameters.AddWithValue("@sourceAccount", sourceAccount);
+                        command.Parameters.AddWithValue("@destinationAccount", destinationAccount);
+
+                        command.ExecuteNonQuery();
+                    }
+
+                    return true;
                 }
-
-                return true;
+                else
+                {
+                    return false;
+                }
             }
             catch (Exception)
             {
@@ -66,5 +75,17 @@ namespace DZ_19_01
                 connection.Close();
             }
         }
+
+        private decimal GetAccountBalance(SqlConnection connection, int accountNumber)
+        {
+            string selectQuery = "SELECT Balance FROM Accounts WHERE AccountNumber = @accountNumber;";
+
+            using (SqlCommand command = new SqlCommand(selectQuery, connection))
+            {
+                command.Parameters.AddWithValue("@accountNumber", accountNumber);
+                return Convert.ToDecimal(command.ExecuteScalar());
+            }
+        }
+
     }
 }
